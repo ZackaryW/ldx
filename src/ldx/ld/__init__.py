@@ -1,4 +1,4 @@
 
 
 from ldx.ld.ldattr import LDAttr
-from ldx.ld.ldplayer import Console
+from ldx.ld.console import Console
