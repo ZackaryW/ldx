@@ -92,6 +92,33 @@ class Console(IConsole, BatchMixin):
         lockwindow: typing.Optional[bool] = None,
         root: typing.Optional[bool] = None,
     ):
+        """
+        Modifies the settings of an emulator instance.
+
+        Args:
+            name (str, optional): The name of the emulator instance to modify. Either name or index must be provided.
+            index (int, optional): The index of the emulator instance to modify. Either name or index must be provided.
+            resolution (str, optional): The screen resolution (e.g., "1920x1080").
+            cpu (int, optional): The number of CPU cores (1, 2, 3, or 4).
+            memory (int, optional): The amount of memory in MB (256, 512, 768, 1024, 2048, 4096, or 8192).
+            manufacturer (str, optional): The device manufacturer name.
+            model (str, optional): The device model name.
+            pnumber (int, optional): The phone number.
+            imei (str, optional): The IMEI number. Use "auto" to generate automatically.
+            imsi (str, optional): The IMSI number. Use "auto" to generate automatically.
+            simserial (str, optional): The SIM serial number. Use "auto" to generate automatically.
+            androidid (str, optional): The Android ID. Use "auto" to generate automatically.
+            mac (str, optional): The MAC address. Use "auto" to generate automatically.
+            autorotate (bool, optional): Whether to enable auto-rotation.
+            lockwindow (bool, optional): Whether to lock the window.
+            root (bool, optional): Whether to enable root access.
+
+        Raises:
+            ValueError: If neither name nor index is provided.
+
+        Returns:
+            None
+        """
         arglist = []
         if not name and not index:
             raise ValueError("Either name or index must be provided")
@@ -136,6 +163,20 @@ class Console(IConsole, BatchMixin):
         index: int | None = None,
         content: str | Record | None = None,
     ):
+        """
+        Operates on a recorded script for an emulator instance.
+
+        Args:
+            name (str, optional): The name of the emulator instance. Either name or index must be provided.
+            index (int, optional): The index of the emulator instance. Either name or index must be provided.
+            content (str | Record, optional): The record content as a string or Record object. This parameter is required.
+
+        Raises:
+            AssertionError: If content is not provided.
+
+        Returns:
+            None
+        """
         assert content is not None, "content is required"
         cmd = ["operaterecord"]
         if name is not None:
@@ -151,6 +192,23 @@ class Console(IConsole, BatchMixin):
         open_detached(self.attr.ldconsole, *cmd)
 
     def __getattribute__(self, name: str):
+        """
+        Custom attribute access handler that enables batch execution for batchable commands.
+
+        This method intercepts attribute access to wrap batchable commands with batch execution capabilities.
+        When a batchable command is accessed, it returns a wrapper function that can handle both single
+        and batch executions based on the provided arguments.
+
+        Args:
+            name (str): The name of the attribute being accessed.
+
+        Returns:
+            The requested attribute or a batch-enabled wrapper function for batchable commands.
+
+        Raises:
+            ValueError: If a batchable command is called without proper identification parameters
+                       (name, index, instances filter, or console_func).
+        """
         if name.startswith("_"):
             return super().__getattribute__(name)
 
@@ -185,6 +243,15 @@ class Console(IConsole, BatchMixin):
 
 
 def _create_simple_exec_method(command: str):
+    """
+    Creates a simple execution method that runs a command without parameters.
+
+    Args:
+        command (str): The command name to execute.
+
+    Returns:
+        function: A method that executes the specified command.
+    """
     def method(self) -> None:
         logging.info(f"Running exec command: {command}")
         open_detached(self.attr.ldconsole, command)
@@ -197,6 +264,20 @@ for se in E.SIMPLE_EXEC_LIST:
 
 
 def _create_varied_method(func: typing.Callable, methodToUse: typing.Callable):
+    """
+    Creates a method that handles variable parameters based on function signature.
+
+    This factory function creates methods that automatically parse function signatures
+    and build command-line arguments from positional and keyword arguments. It handles
+    special cases like name/index parameters and validates mandatory parameters.
+
+    Args:
+        func (Callable): The function whose signature defines the parameters.
+        methodToUse (Callable): The method to execute (either open_detached or query).
+
+    Returns:
+        function: A dynamically created method that processes arguments and executes the command.
+    """
     def method(self, *args, **kwargs):
         logging.info(f"Running exec command: {func.__name__}")
 
@@ -255,6 +336,15 @@ for ve in E.VARIED_EXEC_LIST:
 
 
 def _simple_query_method(command: str):
+    """
+    Creates a simple query method that runs a command and returns the output.
+
+    Args:
+        command (str): The command name to query.
+
+    Returns:
+        function: A method that executes the query and returns the result.
+    """
     def method(self) -> None:
         logging.info(f"Running query command: {command}")
         return query(self.attr.ldconsole, command)
