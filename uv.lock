@@ -29,17 +29,17 @@ version = "0.1.0"
 source = { editable = "." }
 
 [package.optional-dependencies]
-pyld = [
+ld-cli = [
     { name = "click" },
     { name = "psutil" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "click", marker = "extra == 'pyld'", specifier = ">=8.3.0" },
-    { name = "psutil", marker = "extra == 'pyld'", specifier = ">=7.1.0" },
+    { name = "click", marker = "extra == 'ld-cli'", specifier = ">=8.3.0" },
+    { name = "psutil", marker = "extra == 'ld-cli'", specifier = ">=7.1.0" },
 ]
-provides-extras = ["pyld"]
+provides-extras = ["ld-cli"]
 
 [[package]]
 name = "psutil"

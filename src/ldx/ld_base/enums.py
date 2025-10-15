@@ -31,7 +31,7 @@ VARIED_EXEC_LIST = [
 
 SIMPLE_QUERY_LIST = ["list", "runninglist"]
 
-VARIED_QUERY_LIST = ["isrunning", "getprop", "operatelist", "operateinfo"]
+VARIED_QUERY_LIST = ["isrunning", "getprop", "operatelist", "operateinfo", "list3"]
 
 BATCHABLE_COMMANDS = [
     "modify",

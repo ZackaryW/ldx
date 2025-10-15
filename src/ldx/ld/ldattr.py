@@ -24,7 +24,7 @@ class LDAttr:
         from ldx.ld_utils.config import LD_CONFIG
         from ldx.ld.ldattr import LDAttr
 
-        if not LD_CONFIG["path"]:
+        if not LD_CONFIG["path"] or index >= len(LD_CONFIG["path"]):
             raise ValueError("LDPlayer installation directory not found.")
         else:
             path = LD_CONFIG["path"][index]

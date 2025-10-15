@@ -266,3 +266,8 @@ class IConsole:
 
     def list2(self) -> typing.List[List2Meta]:
         pass
+
+    def list3(
+        self, name: typing.Optional[str] = None, index: typing.Optional[int] = None
+    ):
+        pass
