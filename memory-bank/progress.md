@@ -5,189 +5,84 @@
 ### ✅ Core Console Wrapper (ld)
 **Status**: Fully functional
 
-**Implemented**:
-- ✅ Console class with LDPlayer command wrapping
-- ✅ Command factory pattern for automatic method generation
-- ✅ Batch execution support via `__getattribute__` interception
-- ✅ Type-hinted methods for all console commands
-- ✅ Auto-discovery of `ldconsole.exe` path
-- ✅ Subprocess management (blocking and non-blocking)
-
-**Key Files**:
-- `src/ldx/ld/console.py` - Main Console class
-- `src/ldx/ld/ldattr.py` - LDPlayer attribute discovery
-- `src/ldx/ld_base/` - Base classes, models, enums
-- `src/ldx/utils/subprocess.py` - Subprocess utilities
-
-**Capabilities**:
-- Launch/quit emulator instances
-- Modify emulator settings
-- Query emulator list and status
-- Execute batch operations across multiple instances
-- Global settings management
+**Features**:
+- Console command wrapping with command factory pattern
+- Batch execution via `__getattribute__` interception
+- Auto-discovery of `ldconsole.exe`
+- Launch/quit/modify emulator instances
+- Query operations and batch commands
 
 ### ✅ CLI Interface (ld_cli)
-**Status**: Functional with command structure
+**Status**: Functional
 
-**Implemented**:
-- ✅ Click-based CLI framework
-- ✅ `pyld` command entry point
-- ✅ Discovery command for finding LDPlayer
-- ✅ Command factory for exposing console methods
-- ✅ Environment variable support (LD_CONSOLE_PATH)
-- ✅ Global options (--no-print, --ldconsole-path)
-
-**Key Files**:
-- `src/ldx/ld_cli/__init__.py` - CLI entry point
-- `src/ldx/ld_cli/discover.py` - Discovery command
-- `src/ldx/ld_cli/commands/` - Command implementations
-
-**Usage**:
-```bash
-pyld discover                    # Find LDPlayer installation
-pyld cmds launch --name MyEmu    # Launch emulator
-pyld cmds quit --name MyEmu      # Quit emulator
-```
+**Features**:
+- Click-based `pyld` command
+- Discovery, exec, app, query, simple command groups
+- Batch operation support (`--batch-starts`, `--batch-list`)
+- Environment variable support (LD_CONSOLE_PATH)
 
 ### ✅ Plugin System (ldx_runner)
-**Status**: Core system functional
+**Status**: Fully functional with comprehensive documentation
 
-**Implemented**:
-- ✅ Plugin metaclass for automatic registration
-- ✅ Base `LDXPlugin` class with lifecycle hooks
-- ✅ `LDXInstance` runner for CLI execution
-- ✅ `LDXRunner` configuration manager with template support
-- ✅ Plugin lifecycle management (load → run → stop → shutdown)
-- ✅ All-or-nothing execution model
-- ✅ Global config merging (`~/.ldx/runner/configs/global.toml`)
-- ✅ Template system for reusable config snippets
-- ✅ Template reference resolution (`"template::name"`)
+**Core Features**:
+- Plugin metaclass for automatic registration
+- LDXInstance runner (direct execution)
+- LDXRunner config manager (templates + global config)
+- All-or-nothing execution model
+- Inter-plugin communication via instance.plugins dict
+- Custom plugin loading from .py files
 
-**Key Files**:
-- `src/ldx/ldx_runner/core/plugin.py` - Plugin base and metaclass
-- `src/ldx/ldx_runner/core/runner.py` - LDXInstance and LDXRunner
+**Built-in Plugins** (all fully documented):
+- `LD` - LDPlayer instance control
+- `LDXLifetime` - Time-based execution with kill list
+- `MXX` - External executable launcher (Scoop support)
+- `LDXOS` - OS command execution
 
-**Built-in Plugins**:
-- ✅ `LD` - Launch and manage LDPlayer instances
-- ✅ `LDXLifetime` - Time-based execution control
-- ✅ `ScheduleConfig` - Schedule metadata (not a plugin)
-
-**Key Files**:
-- `src/ldx/ldx_runner/builtins/ld.py`
-- `src/ldx/ldx_runner/builtins/lifetime.py`
-- `src/ldx/ldx_runner/builtins/schedule.py`
-
-**Configuration Management**:
-```python
-# Direct execution
-runner = LDXInstance(config_dict)
-runner.run()
-
-# Managed execution with templates
-runner = LDXRunner()
-instance = runner.create_instance("myconfig.toml")
-instance.run()
-```
+**Documentation**:
+- ✅ Complete docstrings on all plugins
+- ✅ Complete docstrings on plugin.py and runner.py
+- ✅ Lifecycle hooks fully documented
+- ✅ Configuration examples in docstrings
 
 ### ✅ Server Integration (ldx_server)
-**Status**: Functional implementation
+**Status**: Functional
 
-**Implemented**:
-- ✅ `FlaskLDXRunner` class for Flask integration
-- ✅ APScheduler integration
-- ✅ Schedule parsing from config
-- ✅ Plugin execution in background jobs
-- ✅ Cron and interval trigger support
+**Features**:
+- FlaskLDXRunner with APScheduler
+- Schedule as separate component (not plugin)
+- Background job execution with ThreadPoolExecutor
+- Cron and interval triggers
 
-**Key Files**:
-- `src/ldx/ldx_server/flask_runner.py`
+### ✅ Documentation
+**Status**: Comprehensive
 
-**Capabilities**:
-- Accept config via initialization
-- Schedule plugin execution
-- Run plugins on cron schedules
-- Run plugins on interval triggers
+**Completed**:
+- ✅ 4 scenario files: launch-one, launch-many, use-cli, work-with-kmp
+- ✅ All builtin plugins documented
+- ✅ Core plugin system documented
+- ✅ README with GitHub links
+- ✅ Memory bank established
 
 ## What's Incomplete
 
 ### ⚠️ Runner CLI (ldx_cli)
-**Status**: Minimal/stub implementation
-
-**Current State**:
-- File exists: `src/ldx/ldx_runner/cli/main.py`
-- Contains only: `import click` (empty)
-
-**Needed**:
-- CLI command structure for running plugins
-- Config file loading command
-- Plugin execution command
-- Status/logging output
+Empty stub file - needs command structure for running plugins via CLI
 
 ### ⚠️ Testing
-**Status**: Basic structure, limited coverage
-
-**Current State**:
-- `tests/test_runner.py` - Exists but coverage unknown
-- `tests_support/test_plugins.py` - Test support modules
-
-**Needed**:
-- Comprehensive Console method tests
-- Plugin lifecycle tests
-- Batch execution tests
-- Server scheduling tests
-- Integration tests
-
-### ⚠️ Documentation
-**Status**: Basic README only
-
-**Current State**:
-- `README.md` - Minimal description
-- No API documentation
-- No user guides
-- No example configurations
-
-**Needed**:
-- API documentation (docstrings → generated docs)
-- User guide for each component
-- Tutorial for creating custom plugins
-- Example configurations
-- Deployment guide for server mode
+Limited coverage - needs plugin lifecycle, batch operations, and integration tests
 
 ### ⚠️ Error Handling
-**Status**: Basic exception handling
+Basic ValueError/AssertionError only - needs custom exception hierarchy
 
-**Current State**:
-- ValueError for parameter validation
-- AssertionError for required parameters
-- No custom exception types
+### ⚠️ Logging
+Basic logging.info() only - needs structured logging configuration
 
-**Needed**:
-- Exception hierarchy for different error types
-- Structured error messages
-- Error recovery strategies
-- Validation helpers
+## Priority Items
 
-## Known Issues
-
-### 1. Empty ldx_cli Implementation
-**Impact**: Users can't run plugins from CLI without writing Python code
-**Priority**: High
-**Workaround**: Use Python imports directly
-
-### 2. No Structured Logging
-**Impact**: Hard to debug issues in production
-**Priority**: Medium
-**Workaround**: Add print statements temporarily
-
-### 3. Limited Test Coverage
-**Impact**: Risk of regressions during refactoring
-**Priority**: High
-**Workaround**: Manual testing
-
-### 4. No API Documentation
-**Impact**: Steep learning curve for new users
-**Priority**: Medium
-**Workaround**: Read source code
+1. **ldx_cli implementation** - Enable CLI-based plugin execution
+2. **Test coverage** - Add plugin lifecycle and batch operation tests
+3. **Structured logging** - Replace basic logging.info() calls
+4. **Error handling** - Create custom exception types
 
 ## Evolution of Decisions
 
@@ -210,81 +105,30 @@ instance.run()
 **Reason**: Users only install what they need, reduces bloat
 
 ### Configuration Management with Templates
-**Original Thinking**: Simple config file loading
-**Evolution**: Multi-layered config system with global settings and templates
-**Current State**: `LDXRunner` manages configs from `~/.ldx/runner/configs/`
-**Features**:
-- Global config merged into all instances
-- Template files for reusable config snippets
-- Template references via `"template::name"` strings
-- Automatic path resolution for relative paths
-**Reason**: Enables config reuse and reduces duplication across multiple automation jobs
+Multi-layered config system: global config + instance config + template references
+- Global: `~/.ldx/runner/configs/global.toml`
+- Templates: Reference via `"template::name"`
+- Custom plugins: Load from .py files in config dir
 
-## Next Milestones
+### Plugin Instance Parameter
+Plugin methods receive `instance` to access other plugins:
+```python
+instance.plugins["lifetime"].killList.append(("process", "app.exe"))
+```
 
-### Milestone 1: Complete CLI
-**Goal**: Fully functional `ldx_cli` for running plugins
-**Tasks**:
-- Design command structure
-- Implement config loading
-- Add execution command
-- Add status/logging output
+### Comprehensive Documentation
+All plugins and core files have complete docstrings with examples
 
-### Milestone 2: Testing Coverage
-**Goal**: 80%+ test coverage on core components
-**Tasks**:
-- Write Console method tests
-- Write plugin lifecycle tests
-- Write batch execution tests
-- Set up CI/CD for tests
+## Recent Additions (October 2025)
 
-### Milestone 3: Documentation
-**Goal**: Comprehensive docs for all components
-**Tasks**:
-- Generate API docs from docstrings
-- Write user guide
-- Create tutorial for custom plugins
-- Add example configurations
+- ✅ Docstrings for all builtin plugins (ld, lifetime, mxx, os)
+- ✅ Docstrings for plugin.py and runner.py
+- ✅ 4 scenario documentation files
+- ✅ README with GitHub links
+- ✅ LDXInstance.plugins changed to dict (from list)
+- ✅ Plugin lifecycle methods receive instance parameter
+- ✅ LDXRunner.load_plugins() for custom .py files
 
-### Milestone 4: Production Ready
-**Goal**: Server deployment with monitoring
-**Tasks**:
-- Add structured logging
-- Create exception hierarchy
-- Add health check endpoints
-- Write deployment guide
-
-## Version History
-
-### v0.1.0 (Current)
-**Date**: October 2025
-**Status**: Early development
-**Features**:
-- Core console wrapper
-- Basic CLI interface
-- Plugin system foundation
-- Server integration basics
-
-**Known Limitations**:
-- Incomplete ldx_cli
-- Limited testing
-- Minimal documentation
-- No error hierarchy
-
-### Future Versions (Planned)
-
-**v0.2.0**
-- Complete ldx_cli implementation
-- Comprehensive test suite
-- API documentation
-
-**v0.3.0**
-- Structured logging
-- Error handling improvements
-- User guide and tutorials
-
-**v1.0.0**
-- Production-ready
-- Full test coverage
-- Complete documentation
-- Stable API
+## Version: 0.1.0
+**Status**: Core functional, documentation complete
+**Focus**: Stable plugin system with comprehensive docs

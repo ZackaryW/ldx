@@ -1,31 +1,29 @@
 # Active Context: ldx
 
 ## Current Focus
-**Status**: Memory bank initialization
+**Status**: Documentation phase complete
 **Date**: October 19, 2025
-**Phase**: Documentation and project structure establishment
+**Phase**: Core implementation stable with comprehensive docstrings
 
 ## Recent Changes
-1. Initialized memory bank with comprehensive project documentation
-2. Documented all 5 major components (ld, ld_cli, ldx, ldx_cli, ldx_server)
-3. Captured architecture patterns and design decisions
+1. ✅ Added comprehensive docstrings to all builtin plugins (ld, lifetime, mxx, os)
+2. ✅ Added full documentation to core plugin system (plugin.py, runner.py)
+3. ✅ Created 4 scenario documents with GitHub links
+4. ✅ Updated LDXInstance to use dict for plugins (was list)
+5. ✅ Plugin lifecycle methods now receive `instance` parameter
+6. ✅ LDXRunner supports custom plugin loading from .py files
 
 ## Next Steps
 
 ### Immediate
-1. Create `progress.md` to document current implementation status
-2. Identify any gaps between design and implementation
-3. Document any active development work
+- Implement ldx_cli for running plugins from command line
+- Add basic test coverage for plugin lifecycle
+- Create example configuration files
 
 ### Short Term
-- Expand `ldx_cli` implementation (currently minimal)
-- Add comprehensive test coverage
-- Set up API documentation generation
-
-### Medium Term
-- Implement structured error handling
-- Add logging configuration system
-- Build example configurations and tutorials
+- Structured logging implementation
+- Error handling improvements
+- Generate API docs from docstrings
 
 ## Active Decisions
 
@@ -85,77 +83,46 @@ class MyPlugin(LDXPlugin):
 ```
 
 ### 3. All-or-Nothing Execution
-If any plugin's `canRun()` returns false, abort entire execution:
-```python
-if not all(p.canRun(cfg) for p in plugins):
-    return  # Don't execute any plugins
-```
+If any plugin's `canRun()` returns false, abort entire execution
 
 ### 4. Lifecycle Consistency
-Same lifecycle in CLI and server modes ensures predictable behavior:
-```
-onEnvLoad → canRun → onStartup → [loop: shouldStop] → onShutdown
-```
+Same lifecycle: `onEnvLoad → canRun → onStartup → [loop: shouldStop] → onShutdown`
 
 ### 5. Configuration Management (LDXRunner)
-Multi-layered config system with global settings and templates:
-- **Global config**: `~/.ldx/runner/configs/global.toml` - base settings for all runs
-- **Instance config**: Specific TOML file - overrides global settings
-- **Templates**: `*.template.toml` - reusable config snippets referenced via `"template::name"`
-- **Merging**: Global → Instance → Template resolution (in that order)
+- Global config: `~/.ldx/runner/configs/global.toml`
+- Templates: `*.template.toml` - referenced via `"template::name"`
+- Custom plugins: Load .py files from config directory
+- Merging: Global → Instance → Template resolution
 
-## Learnings and Insights
+### 6. Instance Parameter in Lifecycle
+Plugin methods receive `instance` parameter to access other plugins:
+```python
+def onStartup(self, cfg, instance):
+    lifetime = instance.plugins.get("lifetime")
+```
 
-### About LDPlayer Integration
-- LDPlayer console is blocking - operations wait for completion
-- Multiple instance management requires careful state tracking
-- Batch operations are common use case - designed in from start
+## Key Implementation Details
 
-### About Plugin Architecture
-- Metaclass registration eliminates boilerplate
-- Dataclass configs provide type safety and IDE support
-- Lifecycle hooks give clear extension points
+### Plugin Access Pattern
+Plugins stored as dict by env_key allows inter-plugin communication:
+```python
+instance.plugins["lifetime"].killList.append(("process", "app.exe"))
+```
 
-### About Component Separation
-- Clear boundaries between components (ld → ldx → server)
-- Optional dependencies enable modular installation
-- Each layer adds capabilities without breaking lower layers
+### Documentation Status
+- ✅ All builtin plugins fully documented
+- ✅ Core plugin system fully documented  
+- ✅ 4 scenario files created (launch-one, launch-many, use-cli, work-with-kmp)
+- ✅ README updated with GitHub links
 
-### About Configuration
-- TOML format is readable and widely supported
-- Section keys matching plugin `__env_key__` enables auto-discovery
-- Declarative configs reduce need for custom code
-
-## Current Challenges
-
-### 1. ldx_cli Implementation
-**Issue**: Minimal implementation - just an empty file
-**Impact**: Users can't easily run plugins from CLI
-**Consideration**: Design needed for CLI interface to runner
-
-### 2. Error Handling
-**Issue**: No structured exception types
-**Impact**: Hard to distinguish error types programmatically
-**Consideration**: Create exception hierarchy for common failure modes
-
-### 3. Documentation
-**Issue**: No API docs or user guides
-**Impact**: Steep learning curve for new users
-**Consideration**: Add docstring examples and generate docs site
-
-### 4. Testing
-**Issue**: Limited test coverage
-**Impact**: Harder to refactor with confidence
-**Consideration**: Prioritize tests for core Console methods and plugin lifecycle
-
-## User Preferences
-- **Shell**: PowerShell (Windows environment)
-- **Python Version**: 3.12+
-- **Tooling**: Using `uv` for package management
-- **File Organization**: Follows minimal implementation principle (see file_org.instructions.md)
+### Current Gaps
+1. **ldx_cli**: Empty implementation file
+2. **Testing**: Limited coverage
+3. **Logging**: Basic only
+4. **Error Handling**: No custom exceptions
 
 ## Project Context
-- **Version**: 0.1.0 (early development)
-- **License**: Defined in LICENSE file
-- **Author**: ZackaryW
-- **Primary Use Case**: LDPlayer automation for Android app testing/gaming
+- **Version**: 0.1.0
+- **Python**: 3.12+
+- **Shell**: PowerShell (Windows)
+- **Tool**: uv package manager
