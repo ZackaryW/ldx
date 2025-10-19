@@ -35,11 +35,11 @@ pip install ldx[ld_cli,ldx,ldx_server]
 ## What Can You Do?
 
 ### console controls
-[Control One Emulator](docs/scenarios/launch-one.md)
+[Control One Emulator](https://github.com/ZackaryW/ldx/blob/main/docs/scenarios/launch-one.md)
 
-[Control Multiple Emulators](docs/scenarios/launch-many.md)
+[Control Multiple Emulators](https://github.com/ZackaryW/ldx/blob/main/docs/scenarios/launch-many.md)
 
-[Use Command-Line Interface](docs/scenarios/use-cli.md)
+[Use Command-Line Interface](https://github.com/ZackaryW/ldx/blob/main/docs/scenarios/use-cli.md)
 
 ### configuration
-[Work with Keyboard Mappings](docs/scenarios/work-with-kmp.md)
+[Work with Keyboard Mappings](https://github.com/ZackaryW/ldx/blob/main/docs/scenarios/work-with-kmp.md)
