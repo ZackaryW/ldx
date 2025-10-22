@@ -77,21 +77,55 @@ jobs:
           git push
       
       - name: Set up Python for publishing
-        if: steps.check_pyproject.outputs.modified == 'false'
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       
+      - name: Check if version already published
+        id: check_version
+        run: |
+          pip install toml requests
+          python << 'EOF'
+          import toml
+          import requests
+          import os
+          
+          # Read current version from pyproject.toml
+          with open('pyproject.toml', 'r') as f:
+              data = toml.load(f)
+          current_version = data['project']['version']
+          package_name = data['project']['name']
+          
+          # Check Test PyPI for existing versions
+          should_publish = True
+          try:
+              response = requests.get(f"https://test.pypi.org/pypi/{package_name}/json", timeout=10)
+              if response.status_code == 200:
+                  existing_versions = list(response.json()['releases'].keys())
+                  if current_version in existing_versions:
+                      print(f"Version {current_version} already exists on Test PyPI - skipping publish")
+                      should_publish = False
+          except Exception as e:
+              print(f"Could not check Test PyPI (this is OK for new packages): {e}")
+          
+          if should_publish:
+              print(f"Version {current_version} is new - will publish")
+          
+          # Write to GitHub output
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f"should_publish={str(should_publish).lower()}\n")
+          EOF
+      
       - name: Install build dependencies
-        if: steps.check_pyproject.outputs.modified == 'false'
+        if: steps.check_version.outputs.should_publish != 'false'
         run: pip install build
       
       - name: Build package
-        if: steps.check_pyproject.outputs.modified == 'false'
+        if: steps.check_version.outputs.should_publish != 'false'
         run: python -m build
       
       - name: Publish to Test PyPI
-        if: steps.check_pyproject.outputs.modified == 'false'
+        if: steps.check_version.outputs.should_publish != 'false'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://test.pypi.org/legacy/
