@@ -1,0 +1,97 @@
+name: Dev Branch - Auto Version & Publish to Test PyPI
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  version-and-publish:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write  # Required for OIDC
+      contents: write  # Required for pushing version bump
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # Need to fetch last 2 commits to check for changes
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Check if pyproject.toml was modified in latest commit
+        id: check_pyproject
+        run: |
+          if git diff HEAD~1 HEAD --name-only | grep -q "^pyproject.toml$"; then
+            echo "modified=true" >> $GITHUB_OUTPUT
+            echo "pyproject.toml was modified in the latest commit - skipping version increment"
+          else
+            echo "modified=false" >> $GITHUB_OUTPUT
+            echo "pyproject.toml was not modified - will increment version"
+          fi
+      
+      - name: Set up Python
+        if: steps.check_pyproject.outputs.modified == 'false'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      
+      - name: Install toml package
+        if: steps.check_pyproject.outputs.modified == 'false'
+        run: pip install toml
+      
+      - name: Increment micro version
+        if: steps.check_pyproject.outputs.modified == 'false'
+        run: |
+          python << 'EOF'
+          import toml
+          
+          # Read pyproject.toml
+          with open('pyproject.toml', 'r') as f:
+              data = toml.load(f)
+          
+          # Get current version
+          current_version = data['project']['version']
+          major, minor, micro = map(int, current_version.split('.'))
+          
+          # Increment micro version
+          new_version = f"{major}.{minor}.{micro + 1}"
+          
+          # Update version
+          data['project']['version'] = new_version
+          
+          # Write back
+          with open('pyproject.toml', 'w') as f:
+              toml.dump(data, f)
+          
+          print(f"Version updated: {current_version} -> {new_version}")
+          EOF
+      
+      - name: Commit version bump
+        if: steps.check_pyproject.outputs.modified == 'false'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add pyproject.toml
+          git commit -m "chore: bump version [skip ci]"
+          git push
+      
+      - name: Set up Python for publishing
+        if: steps.check_pyproject.outputs.modified == 'false'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      
+      - name: Install build dependencies
+        if: steps.check_pyproject.outputs.modified == 'false'
+        run: pip install build
+      
+      - name: Build package
+        if: steps.check_pyproject.outputs.modified == 'false'
+        run: python -m build
+      
+      - name: Publish to Test PyPI
+        if: steps.check_pyproject.outputs.modified == 'false'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
