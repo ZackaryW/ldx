@@ -133,24 +133,83 @@ instance.run()
 - Template references: Use `"template::name"` to inject template values
 - Automatic path resolution: Relative paths resolve to config directory
 
-### 5. APScheduler Integration
-**Location**: `ldx/ldx_server/flask_runner.py`
+### 5. Decoupled Scheduler Service
+**Location**: `ldx/ldx_server/scheduler.py`
 
-**Pattern**: Schedule component as config metadata (not a plugin)
+**Pattern**: Service layer separated from web layer
 ```python
-schedule_config = ScheduleConfig(**config.get("schedule"))
-scheduler.add_job(func=_execute_all_plugins, **schedule_config.to_apscheduler_config())
+class SchedulerService:
+    def __init__(self, registry: JobRegistry, max_workers: int = 10):
+        self.scheduler = BackgroundScheduler(executors={'default': ThreadPoolExecutor(max_workers)})
+        self.registry = registry
+        self.job_contexts = {}  # Track execution state
 ```
 
 **Why**:
-- Schedule is metadata about *when* to run, not *what* to run
-- Separates scheduling concern from business logic
-- Allows same config to run in CLI (immediate) or server (scheduled)
+- Testable without Flask
+- Reusable in other contexts
+- Clear separation of concerns
 
 **Design Decision**: Schedule is NOT a plugin
-- Plugins define lifecycle behavior
-- Schedule defines execution timing
-- Runner interprets schedule to trigger plugin execution
+- Plugins define lifecycle behavior (what to do)
+- Schedule defines execution timing (when to do it)
+- Allows same config to run in CLI (immediate) or server (scheduled)
+
+### 6. Persistent Job Registry
+**Location**: `ldx/ldx_server/registry.py`
+
+**Pattern**: JSON-based persistent storage
+```python
+class JobRegistry:
+    def __init__(self, registry_path=Path.home() / ".ldx" / "server" / "registry.json"):
+        self._entries: Dict[str, JobRegistryEntry] = {}
+        self._load()  # Load from disk on startup
+        
+    def register(self, job_id, config, schedule, source):
+        self._entries[job_id] = JobRegistryEntry(...)
+        self._save()  # Persist immediately
+```
+
+**Why**:
+- Jobs survive server restarts
+- Track job metadata (source, execution count, timestamps)
+- Separate scheduled from on-demand jobs
+
+**JobRegistryEntry Fields**:
+- `job_id`: Unique identifier
+- `config`: Full TOML configuration
+- `schedule`: ScheduleConfig or None
+- `source`: Origin ("api", "config:filename.toml")
+- `registered_at`, `last_triggered`, `execution_count`: Tracking data
+
+### 7. Timestamped Execution Tracking
+**Location**: `ldx/ldx_server/scheduler.py`
+
+**Pattern**: Separate base job ID from execution ID
+```python
+def trigger_job(self, job_id: str):
+    execution_id = f"{job_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    # Example: "hello_20251022_145129"
+    
+    context = JobExecutionContext(execution_id, instance)
+    self.job_contexts[execution_id] = context  # Track by execution_id
+```
+
+**Why**:
+- Same job can be triggered multiple times
+- Each execution tracked independently
+- Query status using execution_id (not base job_id)
+
+**Status Query Pattern**:
+```bash
+# Trigger returns execution_id
+$ ldx-client trigger hello
+{"execution_id": "hello_20251022_145129", ...}
+
+# Query using execution_id
+$ ldx-client status hello_20251022_145129
+{"status": "completed", ...}
+```
 
 ## Key Architectural Decisions
 
@@ -238,9 +297,36 @@ Config File → LDXRunner.create_instance(path) → merge global config →
 resolve templates → LDXInstance(merged_config) → [same as Path 3]
 ```
 
-### Path 4: Scheduled Execution
+### Path 4: Server Startup
 ```
-POST /schedule → FlaskLDXRunner.load_plugins() → 
-scheduler.add_job(_execute_all_plugins) → 
-[on trigger] → _execute_all_plugins() → plugin lifecycle
+create_app() → FlaskLDXRunner.__init__() → 
+@app.before_request (first request) → runner.start() →
+load_configs_from_directory() → [for each .toml] →
+create_instance() → load_plugins() → extract_schedule() →
+registry.register() → scheduler.schedule_job()
+```
+
+### Path 5: Scheduled Job Execution
+```
+APScheduler trigger → SchedulerService._execute_job(job_id) →
+JobExecutionContext → instance.can_run() → 
+instance.startup_phase() → instance.execution_phase() →
+instance.shutdown_phase() → update context (status, times, error)
+```
+
+### Path 6: On-Demand Job Trigger
+```
+POST /api/scheduler/jobs/{job_id}/trigger →
+SchedulerService.trigger_job() → registry.get(job_id) →
+registry.create_instance() → generate execution_id (timestamped) →
+scheduler.add_job(immediate) → _execute_job(execution_id) →
+registry.mark_triggered() → return execution_id
+```
+
+### Path 7: Client Query
+```
+ldx-client status {execution_id} →
+GET /api/scheduler/jobs/{execution_id} →
+SchedulerService.get_job_status() → job_contexts[execution_id] →
+return {status, start_time, end_time, error, plugin_count}
 ```

@@ -70,12 +70,38 @@ instance = runner.create_instance("myconfig.toml")
 instance.run()  # Merges global config + templates, then runs
 ```
 
-### Layer 4: Server Scheduling (ldx_server)
-```python
-# Flask server that accepts config via POST
-# Schedules execution using APScheduler
-# Provides hooks for status monitoring
+### Layer 4: Server System (ldx_server)
+```bash
+# Start server
+uv run ldx server
+
+# Server auto-loads configs from ~/.ldx/runner/configs/
+# Registers scheduled jobs (with [schedule] section)
+# Registers on-demand jobs (no [schedule] section)
 ```
+
+**Client Interaction**:
+```bash
+# Query registered jobs
+ldx-client list registry
+
+# Trigger on-demand job
+ldx-client trigger hello
+# Returns: {"execution_id": "hello_20251022_145129", ...}
+
+# Check execution status
+ldx-client status hello_20251022_145129
+
+# List active executions
+ldx-client list active
+```
+
+**Features**:
+- Auto-load configs on startup
+- Persistent registry (survives restarts)
+- REST API for job management
+- APScheduler for cron/interval triggers
+- Timestamped execution tracking
 
 ## User Experience Goals
 
@@ -97,11 +123,16 @@ instance.run()  # Merges global config + templates, then runs
 ### For Operations Teams
 - **Server Mode**: Deploy as HTTP service for remote execution
 - **Scheduled**: Set up recurring jobs with cron or interval triggers
-- **Observable**: Monitor job status and execution history
+- **CLI Client**: Monitor and control via ldx-client command
+- **Persistent**: Registry survives server restarts
+- **Multi-execution**: Track multiple runs of same job independently
 
 ## Success Criteria
-1. A user can control LDPlayer from Python without writing subprocess code
-2. Batch operations work reliably across multiple instances
-3. Custom automation can be built by writing simple plugin classes
-4. Scheduled jobs run unattended with proper error handling
-5. The package remains modular - users only install what they need
+1. ✅ Users can control LDPlayer from Python without writing subprocess code
+2. ✅ Batch operations work reliably across multiple instances
+3. ✅ Custom automation can be built by writing simple plugin classes
+4. ✅ Scheduled jobs run unattended with proper error handling
+5. ✅ The package remains modular - users only install what they need
+6. ✅ Server can be deployed and managed remotely via CLI client
+7. ✅ Jobs persist across server restarts
+8. ✅ Multiple executions of same job can be tracked independently

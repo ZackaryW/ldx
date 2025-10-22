@@ -1,29 +1,30 @@
 # Active Context: ldx
 
 ## Current Focus
-**Status**: Documentation phase complete
-**Date**: October 19, 2025
-**Phase**: Core implementation stable with comprehensive docstrings
+**Status**: Server infrastructure complete
+**Date**: October 22, 2025
+**Phase**: Production-ready scheduler with client CLI
 
 ## Recent Changes
-1. ✅ Added comprehensive docstrings to all builtin plugins (ld, lifetime, mxx, os)
-2. ✅ Added full documentation to core plugin system (plugin.py, runner.py)
-3. ✅ Created 4 scenario documents with GitHub links
-4. ✅ Updated LDXInstance to use dict for plugins (was list)
-5. ✅ Plugin lifecycle methods now receive `instance` parameter
-6. ✅ LDXRunner supports custom plugin loading from .py files
+1. ✅ Decoupled scheduler service from Flask runner
+2. ✅ Implemented persistent job registry (JSON at ~/.ldx/server/registry.json)
+3. ✅ Created REST API routes for job management
+4. ✅ Built complete CLI client (ldx-client) for server interaction
+5. ✅ Fixed config loading to support on-demand jobs
+6. ✅ Fixed plugin loading order issue in server startup
+7. ✅ Fixed scheduler persistence (replaced teardown_appcontext with atexit)
 
 ## Next Steps
 
 ### Immediate
-- Implement ldx_cli for running plugins from command line
-- Add basic test coverage for plugin lifecycle
-- Create example configuration files
+- Add scenario documentation for server/client usage
+- Create example scheduled job configurations
+- Add integration tests for server API
 
-### Short Term
-- Structured logging implementation
-- Error handling improvements
-- Generate API docs from docstrings
+### Future Considerations
+- Job execution history persistence
+- Authentication for server endpoints
+- Webhook notifications on job completion
 
 ## Active Decisions
 
@@ -101,12 +102,41 @@ def onStartup(self, cfg, instance):
     lifetime = instance.plugins.get("lifetime")
 ```
 
+### 7. Server Architecture (NEW)
+**Components**:
+- **SchedulerService**: Decoupled job scheduling and execution
+- **JobRegistry**: Persistent storage at ~/.ldx/server/registry.json
+- **FlaskLDXRunner**: Thin wrapper loading configs from ~/.ldx/runner/configs/
+- **REST API**: Complete CRUD operations for jobs
+- **CLI Client**: ldx-client command for remote server interaction
+
+**Job Types**:
+- **Scheduled**: Jobs with cron/interval triggers (auto-executed)
+- **On-Demand**: Jobs without schedules (triggered via API)
+
+**Execution Model**:
+- Each trigger creates timestamped execution_id (e.g., "hello_20251022_145129")
+- Execution ID tracks specific runs, base job ID tracks registration
+- Status queries use execution_id for triggered jobs
+
 ## Key Implementation Details
 
 ### Plugin Access Pattern
 Plugins stored as dict by env_key allows inter-plugin communication:
 ```python
 instance.plugins["lifetime"].killList.append(("process", "app.exe"))
+```
+
+### Scheduler Persistence Pattern
+Server uses `atexit.register()` for cleanup, NOT `@app.teardown_appcontext`:
+```python
+# CORRECT - runs on process termination
+atexit.register(lambda: runner.stop())
+
+# WRONG - runs after every request
+@app.teardown_appcontext
+def stop_scheduler(exception=None):
+    runner.stop()  # This stops scheduler after EACH request!
 ```
 
 ### Documentation Status
@@ -116,10 +146,9 @@ instance.plugins["lifetime"].killList.append(("process", "app.exe"))
 - ✅ README updated with GitHub links
 
 ### Current Gaps
-1. **ldx_cli**: Empty implementation file
-2. **Testing**: Limited coverage
-3. **Logging**: Basic only
-4. **Error Handling**: No custom exceptions
+1. **Testing**: Limited coverage for server API
+2. **Documentation**: No scenario docs for server/client workflows yet
+3. **Authentication**: No auth on server endpoints (future consideration)
 
 ## Project Context
 - **Version**: 0.1.0

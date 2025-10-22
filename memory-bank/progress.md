@@ -44,14 +44,39 @@
 - ✅ Lifecycle hooks fully documented
 - ✅ Configuration examples in docstrings
 
-### ✅ Server Integration (ldx_server)
-**Status**: Functional
+### ✅ Server System (ldx_server)
+**Status**: Production ready
+
+**Architecture**:
+- SchedulerService (decoupled from Flask)
+- JobRegistry (persistent JSON storage)
+- FlaskLDXRunner (config directory loader)
+- REST API with complete CRUD operations
+- APScheduler with ThreadPoolExecutor
 
 **Features**:
-- FlaskLDXRunner with APScheduler
-- Schedule as separate component (not plugin)
-- Background job execution with ThreadPoolExecutor
-- Cron and interval triggers
+- Scheduled jobs (cron/interval triggers)
+- On-demand jobs (trigger via API)
+- Job overlap detection
+- Execution tracking with timestamped IDs
+- Auto-load configs from ~/.ldx/runner/configs/
+- Persistent registry at ~/.ldx/server/registry.json
+
+### ✅ Client CLI (ldx-client)
+**Status**: Complete
+
+**Commands**:
+- `register`: Register job from TOML file
+- `trigger`: Execute on-demand job
+- `list jobs/active/registry`: Query server state
+- `status/info`: Get job details
+- `cancel/unregister`: Remove jobs
+- `health`: Server health check
+
+**Features**:
+- Color-coded output (green/red/yellow)
+- Environment variable support (LDX_SERVER_URL)
+- Complete API coverage
 
 ### ✅ Documentation
 **Status**: Comprehensive
@@ -65,24 +90,16 @@
 
 ## What's Incomplete
 
-### ⚠️ Runner CLI (ldx_cli)
-Empty stub file - needs command structure for running plugins via CLI
+### ⚠️ Documentation
+No scenario docs for server/client usage yet
 
 ### ⚠️ Testing
-Limited coverage - needs plugin lifecycle, batch operations, and integration tests
-
-### ⚠️ Error Handling
-Basic ValueError/AssertionError only - needs custom exception hierarchy
-
-### ⚠️ Logging
-Basic logging.info() only - needs structured logging configuration
+Limited coverage - needs server API integration tests
 
 ## Priority Items
 
-1. **ldx_cli implementation** - Enable CLI-based plugin execution
-2. **Test coverage** - Add plugin lifecycle and batch operation tests
-3. **Structured logging** - Replace basic logging.info() calls
-4. **Error handling** - Create custom exception types
+1. **Server scenario documentation** - Document server/client workflows
+2. **Integration tests** - Test server API endpoints
 
 ## Evolution of Decisions
 
@@ -121,6 +138,7 @@ All plugins and core files have complete docstrings with examples
 
 ## Recent Additions (October 2025)
 
+### Documentation Phase (Oct 19)
 - ✅ Docstrings for all builtin plugins (ld, lifetime, mxx, os)
 - ✅ Docstrings for plugin.py and runner.py
 - ✅ 4 scenario documentation files
@@ -128,6 +146,16 @@ All plugins and core files have complete docstrings with examples
 - ✅ LDXInstance.plugins changed to dict (from list)
 - ✅ Plugin lifecycle methods receive instance parameter
 - ✅ LDXRunner.load_plugins() for custom .py files
+
+### Server Infrastructure (Oct 22)
+- ✅ Decoupled SchedulerService from Flask
+- ✅ JobRegistry with persistent storage
+- ✅ REST API with complete job management
+- ✅ CLI client (ldx-client) with full API coverage
+- ✅ Config directory auto-loading on server startup
+- ✅ On-demand job support (trigger via API)
+- ✅ Timestamped execution tracking
+- ✅ Fixed scheduler persistence issue
 
 ## Version: 0.1.0
 **Status**: Core functional, documentation complete

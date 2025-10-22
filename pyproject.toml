@@ -41,4 +41,4 @@ ldx-client = [
 ]
 
 [tool.ruff]
-ignore = [ "F401",]
+ignore = [ "F401"]

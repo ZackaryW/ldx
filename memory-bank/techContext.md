@@ -32,10 +32,18 @@
 - **flask >= 3.1.2**: Web framework
   - HTTP endpoints
   - Request handling
+  - Blueprint registration
 - **apscheduler >= 3.11.0**: Job scheduling
-  - Cron triggers
-  - Interval triggers
-- **flask-apscheduler >= 1.13.1**: Flask integration for APScheduler
+  - BackgroundScheduler
+  - ThreadPoolExecutor
+  - Cron and interval triggers
+
+#### ldx_client Group  
+- **click >= 8.3.0**: CLI framework (reused from ld_cli)
+- **requests >= 2.31.0**: HTTP client
+  - REST API calls
+  - Response handling
+- **toml >= 0.10.2**: Config file parsing (reused from ldx)
 
 ### Development Tools
 - **pytest >= 8.4.2**: Testing framework (dev dependency)
@@ -65,9 +73,14 @@ pip install ldx[ldx]
 pip install ldx[ldx_server]
 ```
 
+**With client CLI**:
+```bash
+pip install ldx[ldx_client]
+```
+
 **Everything**:
 ```bash
-pip install ldx[ld_cli,ldx,ldx_server]
+pip install ldx[ld_cli,ldx,ldx_server,ldx_client]
 ```
 
 **Development**:
@@ -88,10 +101,15 @@ src/ldx/              # Main package
 ├── ld_utils/         # Utilities for ld component
 ├── ld_ext/           # Extensions for ld (models, objects)
 ├── ldx_runner/       # Plugin system
-│   ├── builtins/     # Built-in plugins
-│   ├── core/         # Runner and plugin base
-│   └── cli/          # CLI for runner
+│   ├── builtins/     # Built-in plugins (ld, lifetime, mxx, os)
+│   ├── core/         # Runner, plugin base, schedule
+│   └── cli/          # CLI client (ldx-client)
 └── ldx_server/       # Flask server implementation
+    ├── flask_runner.py   # Config loader and Flask integration
+    ├── scheduler.py      # SchedulerService (decoupled)
+    ├── registry.py       # JobRegistry (persistent storage)
+    ├── routes.py         # REST API endpoints
+    └── server.py         # Application factory
 
 tests/                # Test files
 tests_support/        # Test support modules (plugins for testing)
@@ -99,13 +117,15 @@ tests_support/        # Test support modules (plugins for testing)
 
 ### Entry Points
 
-**Console Script** (defined in pyproject.toml):
+**Console Scripts** (defined in pyproject.toml):
 ```toml
 [project.scripts]
-pyld = "ldx.ld_cli.__init__:cli"
+pyld = "ldx.ld_cli.__init__:cli"         # LD console wrapper CLI
+ldx = "ldx.ldx_server.server:main"       # Server entry point
+ldx-client = "ldx.ldx_runner.cli.client:client"  # Client CLI
 ```
 
-This registers the `pyld` command when package is installed.
+These register commands when respective dependency groups are installed.
 
 ## Technical Constraints
 
@@ -224,9 +244,32 @@ param2 = 123
 - **PyPI**: Intended distribution platform
 - **Installation**: via pip/uv/poetry
 
+## Server Architecture Details
+
+### Config Loading
+- **Directory**: `~/.ldx/runner/configs/`
+- **Auto-load**: All .toml files loaded on server startup
+- **Scheduled Jobs**: Configs with `[schedule]` section
+- **On-Demand Jobs**: Configs without `[schedule]` section
+
+### Job Registry
+- **Storage**: `~/.ldx/server/registry.json`
+- **Persistence**: Jobs survive server restarts
+- **Tracking**: Source, timestamps, execution count
+
+### Execution Tracking
+- **Base Job ID**: Identifier in registry (e.g., "hello")
+- **Execution ID**: Timestamped (e.g., "hello_20251022_145129")
+- **Context**: JobExecutionContext tracks status, times, errors
+
+### Scheduler Lifecycle
+- **Startup**: `atexit.register()` for cleanup (NOT `@app.teardown_appcontext`)
+- **First Request**: `@app.before_request` starts scheduler once
+- **Persistence**: Scheduler runs continuously across all requests
+- **Shutdown**: Only when Python process terminates
+
 ## Known Technical Debt
-1. **ldx_cli**: Minimal implementation - CLI for runner not fully built
-2. **Error Handling**: No structured error types or exception hierarchy
-3. **Logging**: Basic logging, no log levels configuration
-4. **Testing**: Limited test coverage
-5. **Documentation**: No API documentation generation setup
+1. **Testing**: Limited server API integration test coverage
+2. **Documentation**: No scenario docs for server/client workflows
+3. **Error Handling**: No structured error types or exception hierarchy
+4. **Logging**: Basic logging, no log levels configuration
