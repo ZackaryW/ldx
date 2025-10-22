@@ -1,40 +1,29 @@
 [project]
 name = "ldx"
-version = "0.1.0"
+version = "0.1.1"
 description = "Add your description here"
 readme = "README.md"
-authors = [
-    { name = "ZackaryW", email = "36378555+ZackaryW@users.noreply.github.com" }
-]
 requires-python = ">=3.12"
 dependencies = []
+[[project.authors]]
+name = "ZackaryW"
+email = "36378555+ZackaryW@users.noreply.github.com"
+
+[build-system]
+requires = [ "uv_build>=0.8.22,<0.9.0",]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [ "pytest>=8.4.2",]
 
 [project.scripts]
 pyld = "ldx.ld_cli.__init__:cli"
 ldx = "ldx.ldx_runner.cli.main:cli"
 
 [project.optional-dependencies]
-ld_cli = [
-    "click>=8.3.0",
-    "psutil>=7.1.0",
-]
-ldx = [
-    "toml>=0.10.2",
-]
-ldx-server = [
-    "apscheduler>=3.11.0",
-    "flask>=3.1.2",
-    "flask-apscheduler>=1.13.1",
-]
-
-[build-system]
-requires = ["uv_build>=0.8.22,<0.9.0"]
-build-backend = "uv_build"
+ld_cli = [ "click>=8.3.0", "psutil>=7.1.0",]
+ldx = [ "toml>=0.10.2",]
+ldx-server = [ "apscheduler>=3.11.0", "flask>=3.1.2", "flask-apscheduler>=1.13.1",]
 
 [tool.ruff]
-ignore = ["F401"]
-
-[dependency-groups]
-dev = [
-    "pytest>=8.4.2",
-]
+ignore = [ "F401",]
