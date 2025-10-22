@@ -16,6 +16,9 @@ def cli(ctx : click.Context, debug: bool):
     ctx.obj = LDXRunner()
     ctx.ensure_object(LDXRunner)
 
+    if not ctx.invoked_subcommand:
+        click.echo(ctx.get_help())
+
 @cli.command()
 @click.argument('config_path', type=str)
 def run(config_path):
@@ -30,3 +33,16 @@ def folder():
     Path.home().joinpath(".ldx", "runner", "configs").mkdir(parents=True, exist_ok=True)
     import os
     os.startfile(Path.home().joinpath(".ldx", "runner", "configs"))
+
+@cli.command()
+def server():
+    """Run the LDX scheduler server."""
+    from ldx.ldx_server.server import main
+    main()
+
+try:
+    from .client import client
+    cli.add_command(client)
+except ImportError:
+    pass
+

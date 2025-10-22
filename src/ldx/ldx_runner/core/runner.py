@@ -77,6 +77,108 @@ class LDXInstance:
                 plugin.onEnvLoad(plugin_config)
                 self.plugins[env_key] = plugin
     
+    def validate(self) -> bool:
+        """
+        Validate that instance has plugins loaded and is ready to run.
+        
+        Returns:
+            True if instance has at least one plugin loaded, False otherwise
+        
+        Example:
+            ```python
+            instance = LDXInstance(config)
+            instance.load_plugins()
+            if instance.validate():
+                instance.run()
+            ```
+        """
+        return len(self.plugins) > 0
+    
+    def can_run(self) -> bool:
+        """
+        Check if all plugins can run.
+        
+        Calls canRun() on all loaded plugins. If any plugin returns False,
+        this returns False (all-or-nothing validation).
+        
+        Returns:
+            True if all plugins can run, False otherwise
+        
+        Example:
+            ```python
+            instance = LDXInstance(config)
+            instance.load_plugins()
+            if instance.can_run():
+                instance.run()
+            ```
+        """
+        if not self.plugins:
+            return False
+        return all(p.canRun(self.config, self) for p in self.plugins.values())
+    
+    def startup_phase(self):
+        """
+        Execute startup phase for all plugins.
+        
+        Calls onStartup() on all loaded plugins in sequence.
+        This is typically called as part of run() but can be used
+        separately for more granular control.
+        
+        Example:
+            ```python
+            instance = LDXInstance(config)
+            instance.load_plugins()
+            if instance.can_run():
+                instance.startup_phase()
+                # ... custom logic ...
+                instance.shutdown_phase()
+            ```
+        """
+        for plugin in self.plugins.values():
+            plugin.onStartup(self.config, self)
+    
+    def execution_phase(self):
+        """
+        Execute the main event loop.
+        
+        Continuously checks if any plugin signals stop via shouldStop().
+        Blocks until any plugin returns True from shouldStop().
+        
+        Example:
+            ```python
+            instance = LDXInstance(config)
+            instance.load_plugins()
+            instance.startup_phase()
+            instance.execution_phase()  # Blocks until shouldStop
+            instance.shutdown_phase()
+            ```
+        """
+        while True:
+            if any(p.shouldStop(self.config, self) for p in self.plugins.values()):
+                break
+            time.sleep(1)
+    
+    def shutdown_phase(self):
+        """
+        Execute shutdown phase for all plugins.
+        
+        Calls onShutdown() on all loaded plugins in sequence.
+        This should ALWAYS be called after startup, even if errors occur.
+        
+        Example:
+            ```python
+            instance = LDXInstance(config)
+            instance.load_plugins()
+            try:
+                instance.startup_phase()
+                instance.execution_phase()
+            finally:
+                instance.shutdown_phase()  # Always cleanup
+            ```
+        """
+        for plugin in self.plugins.values():
+            plugin.onShutdown(self.config, self)
+    
     def run(self):
         """
         Execute the complete plugin lifecycle.
@@ -95,32 +197,26 @@ class LDXInstance:
         
         All plugins are guaranteed to have onShutdown() called, even if
         errors occur during startup or execution.
+        
+        Note: This method uses the phase methods internally. For more
+        granular control, use startup_phase(), execution_phase(), and
+        shutdown_phase() separately.
         """
         self.load_plugins()
         
-        # If no plugins loaded, nothing to do
-        if not self.plugins:
+        # Validate instance has plugins
+        if not self.validate():
             return
         
         # Check if ALL plugins can run - if any fails, abort entire execution
-        if not all(p.canRun(self.config, self) for p in self.plugins.values()):
+        if not self.can_run():
             return
         
         try:
-            # Startup phase - start ALL plugins
-            for plugin in self.plugins.values():
-                plugin.onStartup(self.config, self)
-            
-            # Main loop - wait until any plugin says stop
-            while True:
-                if any(p.shouldStop(self.config, self) for p in self.plugins.values()):
-                    break
-                time.sleep(1)
-                
+            self.startup_phase()
+            self.execution_phase()
         finally:
-            # Shutdown phase - shutdown ALL plugins
-            for plugin in self.plugins.values():
-                plugin.onShutdown(self.config, self)
+            self.shutdown_phase()
 
 
 class LDXRunner:
@@ -132,6 +228,7 @@ class LDXRunner:
     - Template system for reusable config snippets
     - Custom plugin loading from config directory
     - Automatic path resolution
+    - Schedule extraction utilities
     
     Configuration Directory: ~/.ldx/runner/configs/
     
@@ -182,6 +279,11 @@ class LDXRunner:
         
         [lifetime]
         lifetime = 3600
+        
+        [schedule]  # Optional - used by server mode
+        trigger = "cron"
+        hour = 10
+        minute = 30
         ```
     """
     
@@ -317,3 +419,47 @@ class LDXRunner:
             with open(py_file, "r") as f:
                 code = f.read()
                 exec(code, globals())
+    
+    @staticmethod
+    def extract_schedule(config: dict):
+        """
+        Extract and parse schedule configuration from config dict.
+        
+        This is a utility method for extracting the [schedule] section
+        from a configuration dictionary and converting it to a ScheduleConfig
+        object. Used primarily by the server to determine which configs
+        should be scheduled.
+        
+        Args:
+            config: Configuration dictionary (typically from TOML file)
+        
+        Returns:
+            ScheduleConfig object if schedule section exists, None otherwise
+        
+        Example:
+            ```python
+            config = {
+                "ld": {"name": "Test"},
+                "schedule": {"trigger": "cron", "hour": 10}
+            }
+            schedule = LDXRunner.extract_schedule(config)
+            if schedule:
+                print(f"Schedule: {schedule.trigger} at {schedule.hour}:00")
+            ```
+        
+        Note:
+            This method is marked @staticmethod because it doesn't need
+            access to instance state. It's a pure utility function.
+        """
+        from ldx.ldx_runner.core.schedule import ScheduleConfig
+        
+        schedule_data = config.get("schedule")
+        if not schedule_data:
+            return None
+        
+        try:
+            return ScheduleConfig(**schedule_data)
+        except Exception:
+            # If schedule parsing fails, return None
+            # Let caller decide how to handle invalid schedules
+            return None

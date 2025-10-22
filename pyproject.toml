@@ -19,11 +19,26 @@ dev = [ "pytest>=8.4.2",]
 [project.scripts]
 pyld = "ldx.ld_cli.__init__:cli"
 ldx = "ldx.ldx_runner.cli.main:cli"
+ldx-client = "ldx.ldx_runner.cli.client:client"
 
 [project.optional-dependencies]
-ld_cli = [ "click>=8.3.0", "psutil>=7.1.0",]
-ldx = [ "toml>=0.10.2",]
-ldx-server = [ "apscheduler>=3.11.0", "flask>=3.1.2", "flask-apscheduler>=1.13.1",]
+ld_cli = [
+    "click>=8.3.0",
+    "psutil>=7.1.0",
+]
+ldx = [
+    "toml>=0.10.2",
+]
+ldx-server = [
+    "apscheduler>=3.11.0",
+    "flask>=3.1.2",
+    "flask-apscheduler>=1.13.1",
+]
+ldx-client = [
+    "click>=8.3.0",
+    "requests>=2.31.0",
+    "toml>=0.10.2",
+]
 
 [tool.ruff]
 ignore = [ "F401",]
